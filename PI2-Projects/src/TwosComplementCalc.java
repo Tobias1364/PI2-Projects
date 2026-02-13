@@ -19,7 +19,6 @@ public class TwosComplementCalc {
 			
 		}
 		binary.reverse();
-//		System.out.println(binary.length());
 		
 		boolean overflow = carry;
 		

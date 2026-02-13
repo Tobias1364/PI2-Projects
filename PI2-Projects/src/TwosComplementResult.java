@@ -10,6 +10,7 @@ public class TwosComplementResult {
 		this.overflow = overflow;
 	}
 
+	
 	public boolean equals(TwosComplementResult o) {
 		return this.decimal.equals(o.decimal)
 				&& this.binary.equals(o.binary) && this.overflow == o.overflow;

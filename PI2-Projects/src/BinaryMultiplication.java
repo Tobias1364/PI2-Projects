@@ -3,7 +3,6 @@ import java.util.Scanner;
 public class BinaryMultiplication {
 
 	public static String multiply(String bin1, String bin2) {
-		// Fuege deinen Code hier ein
 		String[] bins = new String[bin2.length()];
 		int multi = bin2.length();
 		for(int i = multi-1, j = 0; i >= 0; i--, j++) {
