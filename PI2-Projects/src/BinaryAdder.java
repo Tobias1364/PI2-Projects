@@ -4,7 +4,6 @@ import java.lang.String;
 //Gruppennummer: XXX
 
 public class BinaryAdder {
-
 	public static String add(String binary1, String binary2) {
 		if(binary1 == null || binary2 == null) {
 			System.out.println("Inputs dürfen nicht null sein");
