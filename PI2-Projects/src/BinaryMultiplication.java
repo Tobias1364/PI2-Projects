@@ -1,5 +1,5 @@
 import java.util.Scanner;
-
+//Gruppennummer: 109
 public class BinaryMultiplication {
 
 	public static String multiply(String bin1, String bin2) {

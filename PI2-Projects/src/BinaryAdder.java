@@ -1,7 +1,7 @@
 import java.util.Scanner;
 import java.lang.String;
 
-//Gruppennummer: XXX
+//Gruppennummer: 109
 
 public class BinaryAdder {
 	public static String add(String binary1, String binary2) {

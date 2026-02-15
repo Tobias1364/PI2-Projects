@@ -1,5 +1,5 @@
 import java.util.Scanner;
-
+//Gruppennummer: 109
 public class TwosComplementCalc {
 
 	/**

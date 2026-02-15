@@ -1,4 +1,4 @@
-
+//Gruppennummer: 109
 public class TwosComplementResult {
 	public String decimal;
 	public String binary;
