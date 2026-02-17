@@ -58,6 +58,7 @@ public class BinaryAdder {
 	}
 	// Teste deine Methode mit zwei Binaerzahlen, die du in der Konsole eingibst
 	// Kommentar Test neu neu NEUU
+	//etwas zu  mergen
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
 		System.out.print("Summand:  ");
