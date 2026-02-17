@@ -2,7 +2,7 @@ import java.util.Scanner;
 import java.lang.String;
 
 //Gruppennummer: 109
-//ich mach was 22
+//ich mach was 22 
 //test etwas zu mergen
 public class BinaryAdder {
 	public static String add(String binary1, String binary2) {
