@@ -2,7 +2,7 @@ import java.util.Scanner;
 import java.lang.String;
 
 //Gruppennummer: 109
-//Probiere etwas
+//Probiere etwas 2
 
 public class BinaryAdder {
 	public static String add(String binary1, String binary2) {
