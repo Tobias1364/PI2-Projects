@@ -52,7 +52,7 @@ public class MiniFloatAdder {
 		if (exp1 == 0) exp1 = 1;
 		if (exp2 == 0) exp2 = 1;
 
-		// Exponenten angleichen und dabei das Guard-Bit für die spätere Rundung merken
+		// Exponenten angleichen und dabei das Guard-Bit fuer die spaetere Rundung merken
 		int guard = 0;
 
 		if (exp1 > exp2) {
@@ -78,7 +78,7 @@ public class MiniFloatAdder {
 		int sig = sig1 + sig2;
 		byte exp = exp1;
 		if (sig >= 32) {
-			guard = sig % 2; // Guard-Bit aus Normalisierung überschreibt das vorherige Guard-Bit
+			guard = sig % 2; // Guard-Bit aus Normalisierung ueberschreibt das vorherige Guard-Bit
 			sig = sig / 2;
 			exp++;
 		}
@@ -105,7 +105,7 @@ public class MiniFloatAdder {
 		return (byte) (expBits * 16 + frac);
 	}
 
-	// Hilfsmethode: konvertiert ein MiniFloat-Byte in eine Binärzahl
+	// Hilfsmethode: konvertiert ein MiniFloat-Byte in eine Binaerzahl
 	private static String toBinaryString(byte miniF) {
 		int raw = miniF;
 		if (raw < 0) raw += 256; 
@@ -128,7 +128,7 @@ public class MiniFloatAdder {
 	}
 
 
-	// Hilfsmethode: konvertiert eine Binärzahl in ein MiniFloat-Byte
+	// Hilfsmethode: konvertiert eine Binaerzahl in ein MiniFloat-Byte
 	private static byte binaryToMiniFloat(String bits) {
 		return (byte) Integer.parseInt(bits, 2);
 	}
@@ -171,9 +171,9 @@ public class MiniFloatAdder {
 
 		System.out.println("\nAufgabe 3c:");
 		Scanner scanner = new Scanner(System.in);
-		System.out.print("Erste MiniFloat (8-Bit-Binär): ");
+		System.out.print("Erste MiniFloat (8-Bit-Binaer): ");
 		String firstBits = scanner.nextLine().trim();
-		System.out.print("Zweite MiniFloat (8-Bit-Binär): ");
+		System.out.print("Zweite MiniFloat (8-Bit-Binaer): ");
 		String secondBits = scanner.nextLine().trim();
 		byte first = binaryToMiniFloat(firstBits);
 		byte second = binaryToMiniFloat(secondBits);
@@ -188,4 +188,5 @@ public class MiniFloatAdder {
 		aufgabe_3e();
 	}
 }
+
 
