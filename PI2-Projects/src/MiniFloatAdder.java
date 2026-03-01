@@ -30,7 +30,7 @@ public class MiniFloatAdder {
 		return builder.reverse().toString();
 	}
 
-	/** MiniFloat to double */
+
 	public static final double toDouble(byte miniF) {
 		int raw = miniF;
 		if (raw < 0) raw += 256;
@@ -56,14 +56,12 @@ public class MiniFloatAdder {
 		return Math.pow(-1, vorzeichen) * mantissa * Math.pow(2, exponent);
 	}
 
-	/** adds two non-negative MiniFloats */
 	public static final byte addMiniFloats(byte miniF1, byte miniF2) {
 		int raw1 = ((int) miniF1) < 0 ? miniF1 + 256 : miniF1;
 		int raw2 = ((int) miniF2) < 0 ? miniF2 + 256 : miniF2;
 
 		byte exp1 = (byte) ((raw1 / 16) % 8);
 		byte exp2 = (byte) ((raw2 / 16) % 8);
-
 
 		byte frac1 = (byte) (raw1 % 16);
 		byte frac2 = (byte) (raw2 % 16);
@@ -74,26 +72,27 @@ public class MiniFloatAdder {
 		if (exp1 == 0) exp1 = 1;
 		if (exp2 == 0) exp2 = 1;
 
-		// Align exponents
+		// Exponenten angleichen: die kleinere Zahl wird so verschoben, dass sie den größeren Exponenten hat
 		if (exp1 > exp2) {
 			int delta = exp1 - exp2;
 			int d = 1;
-			for (int i = 0; i < delta; i++) d *= 2;   // d = 2^delta, aber als int
+			for (int i = 0; i < delta; i++) d *= 2;   
 
 			int q = sig2 / d;
 			int r = sig2 % d;
 
-			// nearest, ties up:
+			
 			if (2 * r < d) {
 				// abrunden
-				// sig bleibt q
+				sig2 = (byte) q;
 			} else if (2 * r > d) {
-				q = q + 1; // aufrunden
+				sig2 = (byte) (q + 1); // aufrunden
 			} else {
-				// exakt halb: nur aufrunden, wenn q ungerade ist
-				if (q % 2 != 0) q = q + 1;
+				// nur aufrunden, wenn q ungerade ist
+				if (q % 2 != 0) sig2 = (byte) (q + 1);
+				sig2 = (byte) q;
 			}
-			sig2 = (byte) q;
+			
 			exp2 = exp1;
 		} else if (exp2 > exp1) {
 			int delta = exp2 - exp1;
@@ -105,14 +104,14 @@ public class MiniFloatAdder {
 
 			if (2 * r < d) {
 				// abrunden
-				// sig bleibt q
+				sig1 = (byte) q;
 			} else if (2 * r > d) {
-				q = q + 1; // aufrunden
+				sig1 = (byte) (q + 1); // aufrunden
 			} else {
 				// exakt halb: nur aufrunden, wenn q ungerade ist
-				if (q % 2 != 0) q = q + 1;
+				if (q % 2 != 0) sig1 = (byte) (q + 1);
+				sig1 = (byte) q;
 			}
-			sig1 = (byte) q;
 			exp1 = exp2;
 		}
 
@@ -138,10 +137,12 @@ public class MiniFloatAdder {
 		return (byte) (expBits * 16 + frac);
 	}
 
+	// Hilfsmethode: konvertiert eine Binärzahl in ein MiniFloat-Byte
 	private static byte binaryToMiniFloat(String bits) {
 		return (byte) (Integer.parseInt(bits, 2) & 0xFF);
 	}
 
+	// Hilfsmethode: Testen der Addition 
 	private static void aufgabe_3d(){
 		String [] TESTS = {"00101000", "00101000", "00101000", "00101000", "01111001"};
 		byte first = binaryToMiniFloat(TESTS[0]);
@@ -161,6 +162,7 @@ public class MiniFloatAdder {
 
 	}
 
+	// Hilfsmethode: Testen der Addition
 	private static void aufgabe_3e(){
 		String [] TESTS = {"01111001", "00101000", "00101000", "00101000", "00101000"};
 		byte first = binaryToMiniFloat(TESTS[0]);
