@@ -60,6 +60,7 @@ public class MiniFloatAdder {
 			int d = 1;
 			for (int i = 0; i < delta; i++) d *= 2;
 			int lost = sig2 % d;
+
 			guard = (lost >= d / 2) ? 1 : 0; // Guard-Bit merken
 			sig2 = (byte) (sig2 / d);
 			exp2 = exp1;
@@ -68,6 +69,7 @@ public class MiniFloatAdder {
 			int d = 1;
 			for (int i = 0; i < delta; i++) d *= 2;
 			int lost = sig1 % d;
+
 			guard = (lost >= d / 2) ? 1 : 0; // Guard-Bit merken
 			sig1 = (byte) (sig1 / d);
 			exp1 = exp2;
@@ -104,7 +106,7 @@ public class MiniFloatAdder {
 	}
 
 	// Hilfsmethode: konvertiert ein MiniFloat-Byte in eine Binärzahl
-	public static String toBinaryString(byte miniF) {
+	private static String toBinaryString(byte miniF) {
 		int raw = miniF;
 		if (raw < 0) raw += 256; 
 
