@@ -2,7 +2,6 @@
 import java.util.Scanner;
 
 public class MiniFloatAdder { 
-	/** prints all MiniFloat values in decreasing order */
 	public static void printAllMiniFloatValues() {
         for(int i = 255; i >= 0; i--) {
 			System.out.println(toBinaryString((byte)i) + " " + toDouble((byte)i));
@@ -207,3 +206,4 @@ public class MiniFloatAdder {
 		aufgabe_3e();
 	}
 }
+
