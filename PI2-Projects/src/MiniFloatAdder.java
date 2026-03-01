@@ -2,34 +2,14 @@
 import java.util.Scanner;
 
 public class MiniFloatAdder { 
+	/** prints all MiniFloat values in decreasing order */
 	public static void printAllMiniFloatValues() {
         for(int i = 255; i >= 0; i--) {
 			System.out.println(toBinaryString((byte)i) + " " + toDouble((byte)i));
 		}
 	}
 
-	public static String toBinaryString(byte miniF) {
-		int raw = miniF;
-		if (raw < 0) raw += 256; 
-
-		StringBuilder builder = new StringBuilder();
-
-		while(raw != 0) {
-			builder.append(raw % 2);
-			raw /= 2;
-		}
-
-		if(builder.length() == 8) {
-			return builder.reverse().toString();
-		} else {
-			while(builder.length() < 8) {
-				builder.append(0);
-			}
-		}
-		return builder.reverse().toString();
-	}
-
-
+	/** MiniFloat to double */
 	public static final double toDouble(byte miniF) {
 		int raw = miniF;
 		if (raw < 0) raw += 256;
@@ -55,6 +35,7 @@ public class MiniFloatAdder {
 		return Math.pow(-1, vorzeichen) * mantissa * Math.pow(2, exponent);
 	}
 
+	/** adds two non-negative MiniFloats */
 	public static final byte addMiniFloats(byte miniF1, byte miniF2) {
 		int raw1 = ((int) miniF1) < 0 ? miniF1 + 256 : miniF1;
 		int raw2 = ((int) miniF2) < 0 ? miniF2 + 256 : miniF2;
@@ -71,74 +52,83 @@ public class MiniFloatAdder {
 		if (exp1 == 0) exp1 = 1;
 		if (exp2 == 0) exp2 = 1;
 
-		// Exponenten angleichen: die kleinere Zahl wird so verschoben, dass sie den größeren Exponenten hat
+		// Exponenten angleichen und dabei das Guard-Bit für die spätere Rundung merken
+		int guard = 0;
+
 		if (exp1 > exp2) {
 			int delta = exp1 - exp2;
 			int d = 1;
-			for (int i = 0; i < delta; i++) d *= 2;   
-
-			int q = sig2 / d;
-			int r = sig2 % d;
-
-			
-			if (2 * r < d) {
-				// abrunden
-				sig2 = (byte) q;
-			} else if (2 * r > d) {
-				sig2 = (byte) (q + 1); // aufrunden
-			} else {
-				// nur aufrunden, wenn q ungerade ist
-				if (q % 2 != 0) sig2 = (byte) (q + 1);
-				sig2 = (byte) q;
-			}
-			
+			for (int i = 0; i < delta; i++) d *= 2;
+			int lost = sig2 % d;
+			guard = (lost >= d / 2) ? 1 : 0; // Guard-Bit merken
+			sig2 = (byte) (sig2 / d);
 			exp2 = exp1;
 		} else if (exp2 > exp1) {
 			int delta = exp2 - exp1;
 			int d = 1;
-			for (int i = 0; i < delta; i++) d *= 2;   // d = 2^delta, aber als int
-
-			int q = sig1 / d;
-			int r = sig1 % d;
-
-			if (2 * r < d) {
-				// abrunden
-				sig1 = (byte) q;
-			} else if (2 * r > d) {
-				sig1 = (byte) (q + 1); // aufrunden
-			} else {
-				// exakt halb: nur aufrunden, wenn q ungerade ist
-				if (q % 2 != 0) sig1 = (byte) (q + 1);
-				sig1 = (byte) q;
-			}
+			for (int i = 0; i < delta; i++) d *= 2;
+			int lost = sig1 % d;
+			guard = (lost >= d / 2) ? 1 : 0; // Guard-Bit merken
+			sig1 = (byte) (sig1 / d);
 			exp1 = exp2;
 		}
 
-		byte sig = (byte) (sig1 + sig2);
+		int sig = sig1 + sig2;
 		byte exp = exp1;
 		if (sig >= 32) {
-			int lost = sig % 2;     // verlorenes Bit beim /2
-			sig = (byte)(sig / 2);
-			if (lost == 1) sig = (byte)(sig + 1); 
+			guard = sig % 2; // Guard-Bit aus Normalisierung überschreibt das vorherige Guard-Bit
+			sig = sig / 2;
 			exp++;
+		}
+
+		// Rundung am Ende
+		if (guard == 1) {
+			sig++;
+			if (sig >= 32) { // Overflow durch Rundung
+				sig = sig / 2;
+				exp++;
+			}
 		}
 
 		byte frac;
 		byte expBits;
 		if (exp == 0 || (exp == 1 && sig < 16)) {
 			expBits = 0;
-			frac = sig;
+			frac = (byte) sig;
 		} else {
 			expBits = exp;
-			frac = (byte)(sig - 16);
+			frac = (byte) (sig - 16);
 		}
 
 		return (byte) (expBits * 16 + frac);
 	}
 
+	// Hilfsmethode: konvertiert ein MiniFloat-Byte in eine Binärzahl
+	public static String toBinaryString(byte miniF) {
+		int raw = miniF;
+		if (raw < 0) raw += 256; 
+
+		StringBuilder builder = new StringBuilder();
+
+		while(raw != 0) {
+			builder.append(raw % 2);
+			raw /= 2;
+		}
+
+		if(builder.length() == 8) {
+			return builder.reverse().toString();
+		} else {
+			while(builder.length() < 8) {
+				builder.append(0);
+			}
+		}
+		return builder.reverse().toString();
+	}
+
+
 	// Hilfsmethode: konvertiert eine Binärzahl in ein MiniFloat-Byte
 	private static byte binaryToMiniFloat(String bits) {
-		return (byte) (Integer.parseInt(bits, 2) & 0xFF);
+		return (byte) Integer.parseInt(bits, 2);
 	}
 
 	// Hilfsmethode: Testen der Addition 
@@ -147,15 +137,11 @@ public class MiniFloatAdder {
 		byte first = binaryToMiniFloat(TESTS[0]);
 		byte second = binaryToMiniFloat(TESTS[1]);
 		byte sumPrev = addMiniFloats(first, second);
-		System.out.printf("%s + %s = %s     (%.2f + %.2f = %.2f)%n",
-					TESTS[0], TESTS[1], toBinaryString(sumPrev),
-					toDouble(first), toDouble(second), toDouble(sumPrev));
+		System.out.printf(TESTS[0] + " + " + TESTS[1] + " = " + toBinaryString(sumPrev) + "     (" + toDouble(first) + " + " + toDouble(second) + " = " + toDouble(sumPrev) + ")%n");
 		for (int i = 2; i < TESTS.length; i++) {
 			byte next = binaryToMiniFloat(TESTS[i]);
 			byte sumNext = addMiniFloats(sumPrev, next);
-			System.out.printf("%s + %s = %s     (%.2f + %.2f = %.2f)%n",
-					toBinaryString(sumPrev), TESTS[i], toBinaryString(sumNext),
-					toDouble(sumPrev), toDouble(next), toDouble(sumNext));
+			System.out.printf(toBinaryString(sumPrev) + " + " + TESTS[i] + " = " + toBinaryString(sumNext) + "     (" + toDouble(sumPrev) + " + " + toDouble(next) + " = " + toDouble(sumNext) + ")%n");
 			sumPrev = sumNext;
 		}
 
@@ -167,15 +153,11 @@ public class MiniFloatAdder {
 		byte first = binaryToMiniFloat(TESTS[0]);
 		byte second = binaryToMiniFloat(TESTS[1]);
 		byte sumPrev = addMiniFloats(first, second);
-		System.out.printf("%s + %s = %s     (%.2f + %.2f = %.2f)%n",
-					TESTS[0], TESTS[1], toBinaryString(sumPrev),
-					toDouble(first), toDouble(second), toDouble(sumPrev));
+		System.out.printf(TESTS[0] + " + " + TESTS[1] + " = " + toBinaryString(sumPrev) + "     (" + toDouble(first) + " + " + toDouble(second) + " = " + toDouble(sumPrev) + ")%n");
 		for (int i = 2; i < TESTS.length; i++) {
 			byte next = binaryToMiniFloat(TESTS[i]);
 			byte sumNext = addMiniFloats(sumPrev, next);
-			System.out.printf("%s + %s = %s     (%.2f + %.2f = %.2f)%n",
-					toBinaryString(sumPrev), TESTS[i], toBinaryString(sumNext),
-					toDouble(sumPrev), toDouble(next), toDouble(sumNext));
+			System.out.printf(toBinaryString(sumPrev) + " + " + TESTS[i] + " = " + toBinaryString(sumNext) + "     (" + toDouble(sumPrev) + " + " + toDouble(next) + " = " + toDouble(sumNext) + ")%n");
 			sumPrev = sumNext;
 		}
 
@@ -194,9 +176,7 @@ public class MiniFloatAdder {
 		byte first = binaryToMiniFloat(firstBits);
 		byte second = binaryToMiniFloat(secondBits);
 		byte sum = addMiniFloats(first, second);
-		System.out.printf("%s + %s = %s     (%.2f + %.2f = %.2f)%n",
-				firstBits, secondBits, toBinaryString(sum),
-				toDouble(first), toDouble(second), toDouble(sum));
+		System.out.printf(firstBits + " + " + secondBits + " = " + toBinaryString(sum) + "     (" + toDouble(first) + " + " + toDouble(second) + " = " + toDouble(sum) + ")%n");
 		scanner.close();
 
 		System.out.println("\nAufgabe 3d:");
