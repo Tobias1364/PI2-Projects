@@ -1,11 +1,44 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.FileOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
 //Gruppennummer: 109
+
+// ---------------------------------------------------------------------------
+// Hilfsklasse: Knoten des Huffman-Baums
+// ---------------------------------------------------------------------------
+class HuffmanNode {
+	char c;
+	int freq;
+	HuffmanNode left, right;
+
+	HuffmanNode(char c, int freq) {
+		this.c = c;
+		this.freq = freq;
+	}
+
+	HuffmanNode(int freq, HuffmanNode left, HuffmanNode right) {
+		this.freq = freq;
+		this.left = left;
+		this.right = right;
+	}
+
+	boolean isLeaf() {
+		return left == null && right == null;
+	}
+}
 
 public class HuffmanCode {
 	
@@ -32,8 +65,63 @@ public class HuffmanCode {
 		return result;
 	}
 
+	// Huffman-Baum aus den Haeufigkeiten aufbauen
+	private static HuffmanNode buildTree(int[] freq) {
+		PriorityQueue<HuffmanNode> pq = new PriorityQueue<HuffmanNode>(
+				Comparator.comparingInt((HuffmanNode n) -> n.freq)
+						.thenComparingInt(n -> (int) n.c));
+
+		for (int i = 0; i < freq.length; i++) {
+			if (freq[i] > 0) {
+				pq.add(new HuffmanNode((char) i, freq[i]));
+			}
+		}
+
+		if (pq.isEmpty()) {
+			return null;
+		}
+
+		if (pq.size() == 1) {
+			HuffmanNode only = pq.poll();
+			return new HuffmanNode(only.freq, only, null);
+		}
+
+		while (pq.size() > 1) {
+			HuffmanNode a = pq.poll();
+			HuffmanNode b = pq.poll();
+			pq.add(new HuffmanNode(a.freq + b.freq, a, b));
+		}
+
+		return pq.poll();
+	}
+
+	// rekursiv Codewortlaengen im Baum setzen
+	private static void fillCodeLengths(HuffmanNode node, int depth, int[] codeLengths) {
+		if (node == null) {
+			return;
+		}
+
+		if (node.isLeaf()) {
+			codeLengths[(int) node.c] = (depth == 0) ? 1 : depth;
+			return;
+		}
+
+		fillCodeLengths(node.left, depth + 1, codeLengths);
+		fillCodeLengths(node.right, depth + 1, codeLengths);
+	}
+
 	public static void main(String[] args) {
 		try {
+			if (args.length == 3 && args[0].equals("-e")) {
+				encodeOptional(args[1], args[2]);
+				return;
+			}
+
+			if (args.length == 3 && args[0].equals("-d")) {
+				decodeOptional(args[1], args[2]);
+				return;
+			}
+
 			HuffmanCode huffman = new HuffmanCode();
 			huffman.tokens = scanFile(args[0]);
 
@@ -69,26 +157,16 @@ public class HuffmanCode {
 					+ bitsProZeichen + " Bits pro Zeichen)");
 
 			// (iv)
-			ArrayList<Integer> liste = new ArrayList<Integer>(); // Liste der Haeufigkeiten, um den Huffman-Baum zu bauen
-			for (int f : freq) {
-				if (f > 0) {
-					liste.add(f);
-				}
-			}
+			int[] codeLengths = new int[256];
+			HuffmanNode root = buildTree(freq);
+			fillCodeLengths(root, 0, codeLengths);
 
 			long huffmanBits = 0;
-
-			while (liste.size() > 1) {
-				Collections.sort(liste); // sortieren, damit die beiden kleinsten Werte am Anfang stehen
-
-				int a = liste.remove(0);
-				int b = liste.remove(0); 
-
-				int summe = a + b;
-				huffmanBits += summe;
-
-				liste.add(summe); // die Summe wird als neuer Knoten in die Liste eingefügt
-			}		
+			for (int i = 0; i < 256; i++) {
+				if (freq[i] > 0) {
+					huffmanBits += (long) freq[i] * codeLengths[i];
+				}
+			}
 
 			double bitsProZeichenHuffman = 0.0;
 			if (huffman.tokens.length > 0) {
@@ -96,7 +174,7 @@ public class HuffmanCode {
 			}
 
 			System.out.println("Kodierung mit Huffman-Code\t  : " + huffmanBits + " ("
-					+ String.format("%.2f", bitsProZeichenHuffman) + " Bits pro Zeichen)");
+					+ String.format(Locale.GERMAN, "%.2f", bitsProZeichenHuffman) + " Bits pro Zeichen)");
 
 			// (v) i. und ii.
 			if (huffman.tokens.length > 0) { // verhindert Division durch Null
@@ -105,9 +183,9 @@ public class HuffmanCode {
 				double ersparnisHuffman    = (1.0 - huffmanBits / basisBits) * 100.0;
 
 				System.out.println("Ersparnis (optimale feste Laenge) : "
-						+ String.format("%.2f", ersparnisFesteLaenge) + "%");
+						+ String.format(Locale.GERMAN, "%.2f", ersparnisFesteLaenge) + "%");
 				System.out.println("Ersparnis (Huffman-Code)\t  : "
-						+ String.format("%.2f", ersparnisHuffman) + "%");
+						+ String.format(Locale.GERMAN, "%.2f", ersparnisHuffman) + "%");
 			} else {
 				System.out.println("Ersparnis (optimale feste Laenge) : 0,00%");
 				System.out.println("Ersparnis (Huffman-Code)\t  : 0,00%");
@@ -116,12 +194,12 @@ public class HuffmanCode {
 			// (vi)		
 			double entropie = 0.0; 
 			for(int f : freq){
-				if(f > 0){
+				if(f > 0 && huffman.tokens.length > 0){
 					double p_i = (double) f / huffman.tokens.length;
 					entropie -= p_i * Math.log(p_i) / Math.log(2);
 				}
 			}
-			System.out.println("Entropie\t\t\t  : " + String.format("%.2f", entropie));
+			System.out.println("Entropie\t\t\t  : " + String.format(Locale.GERMAN, "%.2f", entropie));
 
 			// (vii)
 
@@ -129,73 +207,8 @@ public class HuffmanCode {
 			ArrayList<Zeichen> zeichenListe = new ArrayList<Zeichen>();
 			for (int i = 0; i < 256; i++) {
 				if (freq[i] > 0) {
-					zeichenListe.add(new Zeichen((char) i, huffman.tokens, freq));
+					zeichenListe.add(new Zeichen((char) i, huffman.tokens, freq, codeLengths));
 				}
-			}
-
-			// Huffman-Wortlaengen berechnen
-			ArrayList<ArrayList<Integer>> gruppen = new ArrayList<ArrayList<Integer>>(); // Liste der Gruppen von Zeichen-Indizes
-			ArrayList<Integer> gruppenFreq = new ArrayList<Integer>(); // Liste der Haeufigkeiten der Gruppen
-
-			for (int i = 0; i < zeichenListe.size(); i++) {
-				ArrayList<Integer> gruppe = new ArrayList<Integer>();
-				gruppe.add(i);
-
-				gruppen.add(gruppe);
-				gruppenFreq.add(zeichenListe.get(i).haeufigkeit);
-			}
-
-			
-			while (gruppen.size() > 1) {
-				int min1 = 0;
-				int min2 = 1;
-
-				// Gruppen mit den kleinsten Haeufigkeiten finden
-				if (gruppenFreq.get(min2) < gruppenFreq.get(min1)) {
-					int temp = min1;
-					min1 = min2;
-					min2 = temp;
-				}
-
-				
-				for (int i = 2; i < gruppenFreq.size(); i++) {
-					if (gruppenFreq.get(i) < gruppenFreq.get(min1)) {
-						min2 = min1;
-						min1 = i;
-					} else if (gruppenFreq.get(i) < gruppenFreq.get(min2)) {
-						min2 = i;
-					}
-				}
-
-				// erhöhen der Wortlänge für alle Zeichen in den beiden Gruppen
-				for (int idx : gruppen.get(min1)) {
-					zeichenListe.get(idx).wortLaenge++;
-				}
-				for (int idx : gruppen.get(min2)) {
-					zeichenListe.get(idx).wortLaenge++;
-				}
-
-				// neue Gruppe aus den beiden Gruppen bilden
-				ArrayList<Integer> neueGruppe = new ArrayList<Integer>();
-				neueGruppe.addAll(gruppen.get(min1));
-				neueGruppe.addAll(gruppen.get(min2));
-
-				int neueFreq = gruppenFreq.get(min1) + gruppenFreq.get(min2);
-
-				if (min1 > min2) {
-					gruppen.remove(min1);
-					gruppen.remove(min2);
-					gruppenFreq.remove(min1);
-					gruppenFreq.remove(min2);
-				} else {
-					gruppen.remove(min2);
-					gruppen.remove(min1);
-					gruppenFreq.remove(min2);
-					gruppenFreq.remove(min1);
-				}
-
-				gruppen.add(neueGruppe);
-				gruppenFreq.add(neueFreq);
 			}
 
 			// Nach Haeufigkeit absteigend sortieren
@@ -208,8 +221,19 @@ public class HuffmanCode {
 				Zeichen z = zeichenListe.get(i);
 				System.out.println(z.toString() + ", Codewortlaenge: " + z.getWortLaenge());
 			}
+
+			// Optionale Teilaufgabe
+			String autoOutput = args[0] + ".huf";
+			System.out.println("\n[Zusatzaufgabe] Datei wird jetzt kodiert...");
+			encodeOptional(args[0], autoOutput);
+			System.out.println("Fertig: " + autoOutput);
 		} catch (ArrayIndexOutOfBoundsException aiobe) {
 			System.out.println("Gueltiger Aufruf: java HuffmanCode datei");
+			System.out.println("Oder optional:");
+			System.out.println("  java HuffmanCode -e eingabe ausgabe");
+			System.out.println("  java HuffmanCode -d eingabe ausgabe");
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
 		}
 
 		
@@ -220,11 +244,12 @@ public class HuffmanCode {
 		double relativeHaeufigkeit;
 		int wortLaenge;
 
-		public Zeichen(char zeichen, char[] tokens, int[] freq) {
+		public Zeichen(char zeichen, char[] tokens, int[] freq, int[] codeLengths) {
 			this.zeichen = zeichen;
 			this.haeufigkeit = freq[(int) zeichen];
-			this.relativeHaeufigkeit = (double) this.haeufigkeit / tokens.length * 100;
-			this.wortLaenge = 0;
+			this.relativeHaeufigkeit = (tokens.length == 0) ? 0.0
+					: (double) this.haeufigkeit / tokens.length * 100;
+			this.wortLaenge = codeLengths[(int) zeichen];
 		}
 
 		public int getWortLaenge() {
@@ -237,7 +262,7 @@ public class HuffmanCode {
 			String hex = String.format("0x%02x", (int) zeichen);
 
 			// druckbares Zeichen: Wert >= 33 -> Zeichen ausgeben, sonst genau ein Leerzeichen
-			String chPart = (zeichen >= 33) ? " " + zeichen : "  ";
+			String chPart = (zeichen >= 33) ? " " + zeichen : " ";
 
 			String percent = String.format(Locale.GERMAN, "%.1f", relativeHaeufigkeit);
 
@@ -245,5 +270,201 @@ public class HuffmanCode {
 			return String.format("%s%s, Häufigkeit: %d (%s%%)",
 					hex, chPart, haeufigkeit, percent);
 		}
+	}
+
+	
+	// Optimale/optionale Loesung: Kodieren und Dekodieren mit Huffman-Baum
+
+	// Zusaetzliche Informationen in der kodierten Datei:
+	// 1) Anzahl der Original-Zeichen
+	// 2) Laenge der Baumdarstellung in Bits
+	// 3) Laenge der kodierten Daten in Bits
+	// 4) Baumdarstellung
+	// 5) Kodierte Nutzdaten
+
+	private static void buildCodes(HuffmanNode node, String prefix, Map<Character, String> codes) {
+		if (node == null) {
+			return;
+		}
+		if (node.isLeaf()) {
+			codes.put(node.c, prefix.isEmpty() ? "0" : prefix);
+			return;
+		}
+		buildCodes(node.left, prefix + "0", codes);
+		buildCodes(node.right, prefix + "1", codes);
+	}
+
+	private static void serializeTree(HuffmanNode node, StringBuilder sb) {
+		if (node == null) {
+			return;
+		}
+		if (node.isLeaf()) {
+			sb.append('1');
+			int val = (int) node.c;
+			for (int i = 7; i >= 0; i--) {
+				sb.append((val >> i) & 1);
+			}
+		} else {
+			sb.append('0');
+			serializeTree(node.left, sb);
+			serializeTree(node.right, sb);
+		}
+	}
+
+	private static HuffmanNode deserializeTree(String bits, int[] pos) {
+		if (pos[0] >= bits.length()) {
+			return null;
+		}
+
+		char bit = bits.charAt(pos[0]++);
+		if (bit == '1') {
+			int val = 0;
+			for (int i = 0; i < 8; i++) {
+				val = (val << 1) | (bits.charAt(pos[0]++) - '0');
+			}
+			return new HuffmanNode((char) val, 0);
+		}
+
+		HuffmanNode left = deserializeTree(bits, pos);
+		HuffmanNode right = deserializeTree(bits, pos);
+		return new HuffmanNode(0, left, right);
+	}
+
+	private static byte[] bitsToBytes(String bits) {
+		int len = (bits.length() + 7) / 8;
+		byte[] result = new byte[len];
+
+		for (int i = 0; i < bits.length(); i++) {
+			if (bits.charAt(i) == '1') {
+				result[i / 8] |= (byte) (1 << (7 - (i % 8)));
+			}
+		}
+
+		return result;
+	}
+
+	private static String bytesToBits(byte[] data, int totalBits) {
+		StringBuilder sb = new StringBuilder(totalBits);
+		int written = 0;
+
+		for (byte b : data) {
+			for (int i = 7; i >= 0 && written < totalBits; i--, written++) {
+				sb.append((b >> i) & 1);
+			}
+		}
+
+		return sb.toString();
+	}
+
+	private static void encodeOptional(String inputFile, String outputFile) throws IOException {
+		char[] tokens = scanFile(inputFile);
+		int n = tokens.length;
+
+		int[] freq = new int[256];
+		for (char c : tokens) {
+			freq[(int) c]++;
+		}
+
+		HuffmanNode root = buildTree(freq);
+		if (root == null) {
+			try (DataOutputStream dos = new DataOutputStream(
+					new BufferedOutputStream(new FileOutputStream(outputFile)))) {
+				dos.writeInt(0);
+				dos.writeInt(0);
+				dos.writeInt(0);
+			}
+			System.out.println("Optionale Kodierung abgeschlossen (leere Datei).");
+			return;
+		}
+
+		Map<Character, String> codes = new HashMap<Character, String>();
+		buildCodes(root, "", codes);
+
+		StringBuilder treeBits = new StringBuilder();
+		serializeTree(root, treeBits);
+
+		StringBuilder dataBits = new StringBuilder();
+		for (char c : tokens) {
+			dataBits.append(codes.get(c));
+		}
+
+		int treeBitLen = treeBits.length();
+		int dataBitLen = dataBits.length();
+
+		try (DataOutputStream dos = new DataOutputStream(
+				new BufferedOutputStream(new FileOutputStream(outputFile)))) {
+			dos.writeInt(n);
+			dos.writeInt(treeBitLen);
+			dos.writeInt(dataBitLen);
+			dos.write(bitsToBytes(treeBits.toString()));
+			dos.write(bitsToBytes(dataBits.toString()));
+		}
+
+		System.out.println("Optionale Kodierung abgeschlossen.");
+		System.out.println("  Original:    " + (n * 8) + " Bits  (" + n + " Bytes)");
+		System.out.println("  Komprimiert: " + dataBitLen + " Bits Daten + " + treeBitLen + " Bits Baum");
+		System.out.println("  Ausgabedatei: " + outputFile);
+	}
+
+	private static void decodeOptional(String inputFile, String outputFile) throws IOException {
+		int n;
+		int treeBitLen;
+		int dataBitLen;
+		byte[] treeBytes;
+		byte[] dataBytes;
+
+		try (DataInputStream dis = new DataInputStream(
+				new BufferedInputStream(new FileInputStream(inputFile)))) {
+			n = dis.readInt();
+			treeBitLen = dis.readInt();
+			dataBitLen = dis.readInt();
+
+			int treeByteLen = (treeBitLen + 7) / 8;
+			int dataByteLen = (dataBitLen + 7) / 8;
+
+			treeBytes = new byte[treeByteLen];
+			dataBytes = new byte[dataByteLen];
+			dis.readFully(treeBytes);
+			dis.readFully(dataBytes);
+		}
+
+		if (n == 0) {
+			try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+				// leere Datei schreiben
+			}
+			System.out.println("Optionale Dekodierung abgeschlossen: leere Datei.");
+			return;
+		}
+
+		String treeBits = bytesToBits(treeBytes, treeBitLen);
+		int[] pos = {0};
+		HuffmanNode root = deserializeTree(treeBits, pos);
+
+		String dataBits = bytesToBits(dataBytes, dataBitLen);
+		try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+			if (root != null && root.isLeaf()) {
+				for (int i = 0; i < n; i++) {
+					fos.write((int) root.c);
+				}
+			} else {
+				HuffmanNode node = root;
+				int decoded = 0;
+
+				for (int i = 0; i < dataBits.length() && decoded < n; i++) {
+					node = (dataBits.charAt(i) == '0') ? node.left : node.right;
+					if (node == null) {
+						System.err.println("Fehler beim Dekodieren!");
+						return;
+					}
+					if (node.isLeaf()) {
+						fos.write((int) node.c);
+						decoded++;
+						node = root;
+					}
+				}
+			}
+		}
+
+		System.out.println("Optionale Dekodierung abgeschlossen: " + n + " Zeichen -> " + outputFile);
 	}
 }
